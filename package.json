@@ -7,6 +7,7 @@
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint",
+    "verify:web": "pnpm lint:web && pnpm build:web",
     "dev:api": "uv run --project apps/prediction-api uvicorn prediction_api.app:app --app-dir apps/prediction-api/src --reload --port 8001",
     "check:api": "uv run --project apps/prediction-api ruff check apps/prediction-api/src",
     "compile:api": "uv run --project apps/prediction-api python -m compileall apps/prediction-api/src",
