@@ -12,6 +12,7 @@
     "check:api": "uv run --project apps/prediction-api ruff check apps/prediction-api/src",
     "compile:api": "uv run --project apps/prediction-api python -m compileall apps/prediction-api/src",
     "test:api": "uv run --project apps/prediction-api pytest apps/prediction-api/tests",
-    "verify:api": "pnpm check:api && pnpm compile:api && pnpm test:api"
+    "verify:api": "pnpm check:api && pnpm compile:api && pnpm test:api",
+    "verify": "pnpm verify:web && pnpm verify:api"
   }
 }
