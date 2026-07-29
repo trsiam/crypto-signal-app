@@ -7,12 +7,13 @@
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint",
-    "verify:web": "pnpm lint:web && pnpm build:web",
+    "verify:web": "pnpm lint:web && pnpm test:web && pnpm build:web",
     "dev:api": "uv run --project apps/prediction-api uvicorn prediction_api.app:app --app-dir apps/prediction-api/src --reload --port 8001",
     "check:api": "uv run --project apps/prediction-api ruff check apps/prediction-api/src",
     "compile:api": "uv run --project apps/prediction-api python -m compileall apps/prediction-api/src",
     "test:api": "uv run --project apps/prediction-api pytest apps/prediction-api/tests",
     "verify:api": "pnpm check:api && pnpm compile:api && pnpm test:api",
-    "verify": "pnpm verify:web && pnpm verify:api"
+    "verify": "pnpm verify:web && pnpm verify:api",
+    "test:web": "pnpm --filter web test"
   }
 }
