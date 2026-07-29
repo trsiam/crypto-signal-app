@@ -34,6 +34,18 @@ Machine learning will only be added after the market-data pipeline, technical in
 - Docker
 - GitHub Actions
 
+## Local Development Environment
+
+Verified on Windows 10:
+
+- Node.js 24.18.0
+- npm 11.16.0
+- pnpm 11.17.0
+- Python 3.14.6
+- uv 0.12.0
+- Docker 29.6.2
+- Docker Compose 5.3.1
+
 ## Important Notice
 
 This application is intended to provide probability-based educational market analytics.
