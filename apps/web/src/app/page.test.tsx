@@ -2,16 +2,24 @@
 
 import "@testing-library/jest-dom/vitest";
 
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "./page";
 
 describe("Home page", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
   it("loads and displays the Bitcoin price", async () => {
     vi.stubGlobal(
@@ -96,5 +104,55 @@ describe("Home page", () => {
     });
 
     expect(screen.getByText("$3,210.50")).toBeInTheDocument();
+  });
+
+  it("keeps the previous price visible when a refresh fails", async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            symbol: "BTCUSDT",
+            price: 64869.84,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 502,
+        }),
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<Home />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("$64,869.84")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.getByText(
+        "The latest refresh failed. Showing the last available price.",
+      ),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("$64,869.84")).toBeInTheDocument();
   });
 });
