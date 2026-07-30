@@ -136,6 +136,7 @@ describe("Home page", () => {
     render(<Home />);
 
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -189,6 +190,7 @@ describe("Home page", () => {
     render(<Home />);
 
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -227,77 +229,79 @@ describe("Home page", () => {
 
     expect(screen.getByText("$64,910.25")).toBeInTheDocument();
   });
+
   it("shows an error when the initial market request fails", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(null, {
-        status: 502,
-      }),
-    ),
-  );
-
-  render(<Home />);
-
-  await waitFor(() => {
-    expect(
-      screen.getByText("Live market data is currently unavailable."),
-    ).toBeInTheDocument();
-  });
-
-  expect(screen.queryByText("BTCUSDT")).not.toBeInTheDocument();
-  expect(screen.queryByText(/Last updated:/)).not.toBeInTheDocument();
-});
-it("refreshes the price when the user clicks Refresh now", async () => {
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          symbol: "BTCUSDT",
-          price: 64869.84,
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 502,
         }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      ),
-    )
-    .mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          symbol: "BTCUSDT",
-          price: 64910.25,
-        }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
       ),
     );
 
-  vi.stubGlobal("fetch", fetchMock);
+    render(<Home />);
 
-  const user = userEvent.setup();
+    await waitFor(() => {
+      expect(
+        screen.getByText("Live market data is currently unavailable."),
+      ).toBeInTheDocument();
+    });
 
-  render(<Home />);
-
-  await screen.findByText("$64,869.84");
-
-  await user.click(
-    screen.getByRole("button", {
-      name: "Refresh now",
-    }),
-  );
-
-  await waitFor(() => {
-    expect(screen.getByText("$64,910.25")).toBeInTheDocument();
+    expect(screen.queryByText("BTCUSDT")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last updated:/)).not.toBeInTheDocument();
   });
 
-  expect(fetchMock).toHaveBeenCalledTimes(2);
-});
+  it("refreshes the price when the user clicks Refresh now", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            symbol: "BTCUSDT",
+            price: 64869.84,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            symbol: "BTCUSDT",
+            price: 64910.25,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const user = userEvent.setup();
+
+    render(<Home />);
+
+    await screen.findByText("$64,869.84");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Refresh now",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("$64,910.25")).toBeInTheDocument();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

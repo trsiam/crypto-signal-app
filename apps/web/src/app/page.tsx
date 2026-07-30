@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type MarketPrice = {
   symbol: string;
@@ -20,82 +20,99 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [refreshRequest, setRefreshRequest] = useState(0);
 
-  useEffect(() => {
-    let isRequestInProgress = false;
-    let isCancelled = false;
-    let hasLoadedPrice = false;
+  const requestInProgress = useRef(false);
+  const hasLoadedPrice = useRef(false);
+  const requestVersion = useRef(0);
 
-    async function loadMarketPrice() {
-      if (isRequestInProgress) {
+  const loadMarketPrice = useCallback(async () => {
+    if (requestInProgress.current) {
+      return;
+    }
+
+    requestInProgress.current = true;
+
+    const currentRequestVersion = requestVersion.current;
+
+    if (hasLoadedPrice.current) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/market/price/${selectedSymbol}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not load the cryptocurrency price");
+      }
+
+      const data: MarketPrice = await response.json();
+
+      if (currentRequestVersion !== requestVersion.current) {
         return;
       }
 
-      isRequestInProgress = true;
-
-      if (!hasLoadedPrice) {
-        setIsLoading(true);
+      setMarketPrice(data);
+      setLastUpdated(new Date());
+      hasLoadedPrice.current = true;
+    } catch {
+      if (currentRequestVersion !== requestVersion.current) {
+        return;
       }
 
-      if (hasLoadedPrice && !isCancelled) {
-        setIsRefreshing(true);
+      setError(
+        hasLoadedPrice.current
+          ? "The latest refresh failed. Showing the last available price."
+          : "Live market data is currently unavailable.",
+      );
+    } finally {
+      if (currentRequestVersion === requestVersion.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
 
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `/api/market/price/${selectedSymbol}`,
-          {
-            cache: "no-store",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error("Could not load the cryptocurrency price");
-        }
-
-        const data: MarketPrice = await response.json();
-
-        if (!isCancelled) {
-          setMarketPrice(data);
-          setLastUpdated(new Date());
-          hasLoadedPrice = true;
-        }
-      } catch {
-        if (!isCancelled) {
-          setError(
-            hasLoadedPrice
-              ? "The latest refresh failed. Showing the last available price."
-              : "Live market data is currently unavailable.",
-          );
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-
-        isRequestInProgress = false;
-      }
+      requestInProgress.current = false;
     }
+  }, [selectedSymbol]);
 
+useEffect(() => {
+  const initialRequest = window.setTimeout(() => {
     void loadMarketPrice();
+  }, 0);
 
-    const refreshInterval = window.setInterval(() => {
-      void loadMarketPrice();
-    }, 5_000);
+  const refreshInterval = window.setInterval(() => {
+    void loadMarketPrice();
+  }, 5_000);
 
-    return () => {
-      isCancelled = true;
-      window.clearInterval(refreshInterval);
-    };
-  }, [selectedSymbol, refreshRequest]);
+  return () => {
+    window.clearTimeout(initialRequest);
+    window.clearInterval(refreshInterval);
+  };
+}, [loadMarketPrice]);
+
+  function changeSymbol(symbol: string) {
+    requestVersion.current += 1;
+    requestInProgress.current = false;
+    hasLoadedPrice.current = false;
+
+    setSelectedSymbol(symbol);
+    setMarketPrice(null);
+    setLastUpdated(null);
+    setError(null);
+    setIsLoading(true);
+    setIsRefreshing(false);
+  }
 
   function refreshPrice() {
-    setIsRefreshing(true);
-    setRefreshRequest((currentRequest) => currentRequest + 1);
+    void loadMarketPrice();
   }
 
   return (
@@ -126,7 +143,7 @@ export default function Home() {
           <select
             id="symbol"
             value={selectedSymbol}
-            onChange={(event) => setSelectedSymbol(event.target.value)}
+            onChange={(event) => changeSymbol(event.target.value)}
             className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
           >
             {symbols.map((symbol) => (
