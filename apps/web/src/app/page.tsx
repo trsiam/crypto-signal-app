@@ -48,6 +48,14 @@ export default function Home() {
     }
 
     void loadMarketPrice();
+
+const refreshInterval = window.setInterval(() => {
+  void loadMarketPrice();
+}, 10_000);
+
+return () => {
+  window.clearInterval(refreshInterval);
+};
   }, [selectedSymbol]);
 
   return (
