@@ -15,11 +15,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
 describe("Home page", () => {
-afterEach(() => {
-  cleanup();
-  vi.useRealTimers();
-  vi.restoreAllMocks();
-});
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it("loads and displays the Bitcoin price", async () => {
     vi.stubGlobal(
@@ -154,5 +154,77 @@ afterEach(() => {
     ).toBeInTheDocument();
 
     expect(screen.getByText("$64,869.84")).toBeInTheDocument();
+  });
+
+  it("shows a refresh indicator during a background update", async () => {
+    vi.useFakeTimers();
+
+    let resolveRefresh: ((response: Response) => void) | undefined;
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            symbol: "BTCUSDT",
+            price: 64869.84,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveRefresh = resolve;
+          }),
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<Home />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("$64,869.84")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(screen.getByText("Refreshing price...")).toBeInTheDocument();
+    expect(screen.getByText("$64,869.84")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveRefresh?.(
+        new Response(
+          JSON.stringify({
+            symbol: "BTCUSDT",
+            price: 64910.25,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        ),
+      );
+
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.queryByText("Refreshing price..."),
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByText("$64,910.25")).toBeInTheDocument();
   });
 });
