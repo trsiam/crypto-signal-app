@@ -51,7 +51,7 @@ export default function Home() {
 
 const refreshInterval = window.setInterval(() => {
   void loadMarketPrice();
-}, 10_000);
+}, 2_000);
 
 return () => {
   window.clearInterval(refreshInterval);
