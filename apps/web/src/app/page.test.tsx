@@ -227,4 +227,25 @@ describe("Home page", () => {
 
     expect(screen.getByText("$64,910.25")).toBeInTheDocument();
   });
+  it("shows an error when the initial market request fails", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 502,
+      }),
+    ),
+  );
+
+  render(<Home />);
+
+  await waitFor(() => {
+    expect(
+      screen.getByText("Live market data is currently unavailable."),
+    ).toBeInTheDocument();
+  });
+
+  expect(screen.queryByText("BTCUSDT")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Last updated:/)).not.toBeInTheDocument();
+});
 });
