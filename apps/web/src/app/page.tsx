@@ -20,44 +20,71 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  useEffect(() => {
-    async function loadMarketPrice() {
-      setIsLoading(true);
-      setError(null);
+useEffect(() => {
+  let isRequestInProgress = false;
+  let isCancelled = false;
+  let hasLoadedPrice = false;
 
-      try {
-        const response = await fetch(
-          `/api/market/price/${selectedSymbol}`,
-          {
-            cache: "no-store",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error("Could not load the cryptocurrency price");
-        }
-
-        const data: MarketPrice = await response.json();
-
-        setMarketPrice(data);
-        setLastUpdated(new Date());
-      } catch {
-        setError("Live market data is currently unavailable.");
-      } finally {
-        setIsLoading(false);
-      }
+  async function loadMarketPrice() {
+    if (isRequestInProgress) {
+      return;
     }
 
+    isRequestInProgress = true;
+
+    if (!hasLoadedPrice) {
+      setIsLoading(true);
+    }
+
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/market/price/${selectedSymbol}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not load the cryptocurrency price");
+      }
+
+      const data: MarketPrice = await response.json();
+
+      if (!isCancelled) {
+        setMarketPrice(data);
+        setLastUpdated(new Date());
+        hasLoadedPrice = true;
+      }
+    } catch {
+      if (!isCancelled) {
+        setError(
+          hasLoadedPrice
+            ? "The latest refresh failed. Showing the last available price."
+            : "Live market data is currently unavailable.",
+        );
+      }
+    } finally {
+      if (!isCancelled) {
+        setIsLoading(false);
+      }
+
+      isRequestInProgress = false;
+    }
+  }
+
+  void loadMarketPrice();
+
+  const refreshInterval = window.setInterval(() => {
     void loadMarketPrice();
+  }, 5_000);
 
-    const refreshInterval = window.setInterval(() => {
-      void loadMarketPrice();
-    }, 5_000);
-
-    return () => {
-      window.clearInterval(refreshInterval);
-    };
-  }, [selectedSymbol]);
+  return () => {
+    isCancelled = true;
+    window.clearInterval(refreshInterval);
+  };
+}, [selectedSymbol]);
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -102,15 +129,9 @@ export default function Home() {
               Current price
             </p>
 
-            {isLoading && (
+            {isLoading && !marketPrice && (
               <p className="mt-4 text-xl text-zinc-300">
                 Loading live market price...
-              </p>
-            )}
-
-            {error && (
-              <p className="mt-4 text-xl text-red-400">
-                {error}
               </p>
             )}
 
@@ -134,6 +155,12 @@ export default function Home() {
                   </p>
                 )}
               </div>
+            )}
+
+            {error && (
+              <p className="mt-4 text-sm text-amber-400">
+                {error}
+              </p>
             )}
           </div>
         </section>
