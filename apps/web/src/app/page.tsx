@@ -19,6 +19,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
 useEffect(() => {
   let isRequestInProgress = false;
@@ -31,6 +32,9 @@ useEffect(() => {
     }
 
     isRequestInProgress = true;
+    if (hasLoadedPrice && !isCancelled) {
+  setIsRefreshing(true);
+}
 
     if (!hasLoadedPrice) {
       setIsLoading(true);
@@ -68,6 +72,7 @@ useEffect(() => {
     } finally {
       if (!isCancelled) {
         setIsLoading(false);
+        setIsRefreshing(false);
       }
 
       isRequestInProgress = false;
@@ -154,6 +159,11 @@ useEffect(() => {
                     Last updated: {lastUpdated.toLocaleTimeString()}
                   </p>
                 )}
+                {isRefreshing && (
+  <p className="mt-2 text-sm text-emerald-400">
+    Refreshing price...
+  </p>
+)}
               </div>
             )}
 
