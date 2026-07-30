@@ -18,12 +18,12 @@ export default function Home() {
   const [marketPrice, setMarketPrice] = useState<MarketPrice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     async function loadMarketPrice() {
       setIsLoading(true);
       setError(null);
-      setMarketPrice(null);
 
       try {
         const response = await fetch(
@@ -40,6 +40,7 @@ export default function Home() {
         const data: MarketPrice = await response.json();
 
         setMarketPrice(data);
+        setLastUpdated(new Date());
       } catch {
         setError("Live market data is currently unavailable.");
       } finally {
@@ -49,13 +50,13 @@ export default function Home() {
 
     void loadMarketPrice();
 
-const refreshInterval = window.setInterval(() => {
-  void loadMarketPrice();
-}, 2_000);
+    const refreshInterval = window.setInterval(() => {
+      void loadMarketPrice();
+    }, 5_000);
 
-return () => {
-  window.clearInterval(refreshInterval);
-};
+    return () => {
+      window.clearInterval(refreshInterval);
+    };
   }, [selectedSymbol]);
 
   return (
@@ -126,6 +127,12 @@ return () => {
                     maximumFractionDigits: 2,
                   })}
                 </p>
+
+                {lastUpdated && (
+                  <p className="mt-4 text-sm text-zinc-500">
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </p>
+                )}
               </div>
             )}
           </div>
