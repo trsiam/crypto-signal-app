@@ -36,8 +36,16 @@ def health_check() -> JSONResponse:
 
 @app.get("/market/price/{symbol}")
 def current_market_price(symbol: str) -> dict[str, str | float]:
+    normalized_symbol = symbol.upper()
+
+    if not normalized_symbol.isalnum():
+        raise HTTPException(
+            status_code=422,
+            detail="Symbol must contain only letters and numbers",
+        )
+
     try:
-        return get_current_price(symbol)
+        return get_current_price(normalized_symbol)
     except MarketDataError as exc:
         raise HTTPException(
             status_code=502,
