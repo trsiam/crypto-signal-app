@@ -248,4 +248,56 @@ describe("Home page", () => {
   expect(screen.queryByText("BTCUSDT")).not.toBeInTheDocument();
   expect(screen.queryByText(/Last updated:/)).not.toBeInTheDocument();
 });
+it("refreshes the price when the user clicks Refresh now", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          symbol: "BTCUSDT",
+          price: 64869.84,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          symbol: "BTCUSDT",
+          price: 64910.25,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
+
+  vi.stubGlobal("fetch", fetchMock);
+
+  const user = userEvent.setup();
+
+  render(<Home />);
+
+  await screen.findByText("$64,869.84");
+
+  await user.click(
+    screen.getByRole("button", {
+      name: "Refresh now",
+    }),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText("$64,910.25")).toBeInTheDocument();
+  });
+
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
 });
