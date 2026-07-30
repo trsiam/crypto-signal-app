@@ -17,79 +17,86 @@ export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [marketPrice, setMarketPrice] = useState<MarketPrice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshRequest, setRefreshRequest] = useState(0);
 
-useEffect(() => {
-  let isRequestInProgress = false;
-  let isCancelled = false;
-  let hasLoadedPrice = false;
+  useEffect(() => {
+    let isRequestInProgress = false;
+    let isCancelled = false;
+    let hasLoadedPrice = false;
 
-  async function loadMarketPrice() {
-    if (isRequestInProgress) {
-      return;
-    }
-
-    isRequestInProgress = true;
-    if (hasLoadedPrice && !isCancelled) {
-  setIsRefreshing(true);
-}
-
-    if (!hasLoadedPrice) {
-      setIsLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/market/price/${selectedSymbol}`,
-        {
-          cache: "no-store",
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Could not load the cryptocurrency price");
+    async function loadMarketPrice() {
+      if (isRequestInProgress) {
+        return;
       }
 
-      const data: MarketPrice = await response.json();
+      isRequestInProgress = true;
 
-      if (!isCancelled) {
-        setMarketPrice(data);
-        setLastUpdated(new Date());
-        hasLoadedPrice = true;
+      if (!hasLoadedPrice) {
+        setIsLoading(true);
       }
-    } catch {
-      if (!isCancelled) {
-        setError(
-          hasLoadedPrice
-            ? "The latest refresh failed. Showing the last available price."
-            : "Live market data is currently unavailable.",
+
+      if (hasLoadedPrice && !isCancelled) {
+        setIsRefreshing(true);
+      }
+
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `/api/market/price/${selectedSymbol}`,
+          {
+            cache: "no-store",
+          },
         );
-      }
-    } finally {
-      if (!isCancelled) {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
 
-      isRequestInProgress = false;
+        if (!response.ok) {
+          throw new Error("Could not load the cryptocurrency price");
+        }
+
+        const data: MarketPrice = await response.json();
+
+        if (!isCancelled) {
+          setMarketPrice(data);
+          setLastUpdated(new Date());
+          hasLoadedPrice = true;
+        }
+      } catch {
+        if (!isCancelled) {
+          setError(
+            hasLoadedPrice
+              ? "The latest refresh failed. Showing the last available price."
+              : "Live market data is currently unavailable.",
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+
+        isRequestInProgress = false;
+      }
     }
-  }
 
-  void loadMarketPrice();
-
-  const refreshInterval = window.setInterval(() => {
     void loadMarketPrice();
-  }, 5_000);
 
-  return () => {
-    isCancelled = true;
-    window.clearInterval(refreshInterval);
-  };
-}, [selectedSymbol]);
+    const refreshInterval = window.setInterval(() => {
+      void loadMarketPrice();
+    }, 5_000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(refreshInterval);
+    };
+  }, [selectedSymbol, refreshRequest]);
+
+  function refreshPrice() {
+    setIsRefreshing(true);
+    setRefreshRequest((currentRequest) => currentRequest + 1);
+  }
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -130,9 +137,20 @@ useEffect(() => {
           </select>
 
           <div className="mt-8">
-            <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
-              Current price
-            </p>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
+                Current price
+              </p>
+
+              <button
+                type="button"
+                onClick={refreshPrice}
+                disabled={isLoading || isRefreshing}
+                className="rounded-lg border border-emerald-500 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500 hover:text-zinc-950 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:text-zinc-500"
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh now"}
+              </button>
+            </div>
 
             {isLoading && !marketPrice && (
               <p className="mt-4 text-xl text-zinc-300">
@@ -159,11 +177,12 @@ useEffect(() => {
                     Last updated: {lastUpdated.toLocaleTimeString()}
                   </p>
                 )}
+
                 {isRefreshing && (
-  <p className="mt-2 text-sm text-emerald-400">
-    Refreshing price...
-  </p>
-)}
+                  <p className="mt-2 text-sm text-emerald-400">
+                    Refreshing price...
+                  </p>
+                )}
               </div>
             )}
 
