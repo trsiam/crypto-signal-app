@@ -14,6 +14,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "./page";
 
+vi.mock("../hooks/use-market-candles", () => ({
+  useMarketCandles: () => ({
+    candles: [],
+    isLoading: false,
+    isRefreshing: false,
+    error: null,
+    lastUpdated: null,
+    refreshCandles: vi.fn(),
+  }),
+}));
+
 describe("Home page", () => {
   afterEach(() => {
     cleanup();

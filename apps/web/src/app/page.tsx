@@ -1,5 +1,7 @@
 "use client";
 
+import { PriceChart } from "../components/price-chart";
+import { useMarketCandles } from "../hooks/use-market-candles";
 import { useMarketPrice } from "../hooks/use-market-price";
 
 const symbols = [
@@ -19,6 +21,17 @@ export default function Home() {
     changeSymbol,
     refreshPrice,
   } = useMarketPrice("BTCUSDT");
+
+  const {
+    candles,
+    isLoading: areCandlesLoading,
+    error: candleError,
+    refreshCandles,
+  } = useMarketCandles({
+    symbol: selectedSymbol,
+    interval: "1h",
+    limit: 100,
+  });
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -111,6 +124,45 @@ export default function Home() {
             {error && (
               <p className="mt-4 text-sm text-amber-400">
                 {error}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-wider text-zinc-400">
+                Historical chart
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-500">
+                Last 100 hourly closing prices
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={refreshCandles}
+              disabled={areCandlesLoading}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-emerald-500 hover:text-emerald-400 disabled:cursor-not-allowed disabled:text-zinc-600"
+            >
+              Refresh chart
+            </button>
+          </div>
+
+          <div className="mt-6">
+            {areCandlesLoading && candles.length === 0 && (
+              <p className="text-sm text-zinc-400">
+                Loading historical candle data...
+              </p>
+            )}
+
+            {candles.length > 0 && <PriceChart candles={candles} />}
+
+            {candleError && (
+              <p className="mt-4 text-sm text-amber-400">
+                {candleError}
               </p>
             )}
           </div>
