@@ -23,6 +23,19 @@ const candles = Array.from({ length: 20 }, (_, index) => {
   };
 });
 
+const rsiCandles = Array.from({ length: 14 }, (_, index) => {
+  const close = 200 + index;
+
+  return {
+    open: close - 1,
+    high: close + 2,
+    low: close - 2,
+    close,
+    volume: 2000 + index,
+    closeTime: 1_700_100_000_000 + index * 60_000,
+  };
+});
+
 describe("PriceChart", () => {
   it("renders the closing-price legend", () => {
     render(<PriceChart candles={candles} />);
@@ -59,5 +72,28 @@ describe("PriceChart", () => {
     expect(
       screen.getByText("Not enough candle data to draw the chart."),
     ).toBeInTheDocument();
+  });
+
+  it("renders the RSI 14 panel when enough candles are passed", () => {
+    render(<PriceChart candles={candles} />);
+
+    expect(screen.getAllByText("RSI 14")).toHaveLength(2);
+    expect(
+      screen.getByRole("img", {
+        name: "RSI 14 chart",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("70")).toBeVisible();
+    expect(screen.getByText("30")).toBeVisible();
+  });
+
+  it("does not render the RSI panel when only 14 candles are passed", () => {
+    render(<PriceChart candles={rsiCandles} />);
+
+    expect(
+      screen.queryByRole("img", {
+        name: "RSI 14 chart",
+      }),
+    ).not.toBeInTheDocument();
   });
 });

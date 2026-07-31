@@ -7,6 +7,9 @@ type PriceChartProps = {
 const chartWidth = 800;
 const chartHeight = 280;
 const chartPadding = 24;
+const rsiWidth = 800;
+const rsiHeight = 160;
+const rsiPadding = 24;
 
 export function PriceChart({ candles }: PriceChartProps) {
   if (candles.length < 2) {
@@ -74,6 +77,54 @@ export function PriceChart({ candles }: PriceChartProps) {
       const y =
         chartPadding +
         (1 - normalizedPrice) * drawableHeight;
+
+      return `${x},${y}`;
+    })
+    .filter((point): point is string => point !== null)
+    .join(" ");
+
+  const priceChanges = candles.slice(1).map((candle, index) => {
+    const previousClose = candles[index].close;
+    const change = candle.close - previousClose;
+
+    return {
+      gain: change > 0 ? change : 0,
+      loss: change < 0 ? Math.abs(change) : 0,
+    };
+  });
+
+  const rsiValues = candles.map((_, index) => {
+    if (index < 14) {
+      return null;
+    }
+
+    const recentChanges = priceChanges.slice(index - 13, index + 1);
+    const averageGain =
+      recentChanges.reduce((sum, change) => sum + change.gain, 0) / 14;
+    const averageLoss =
+      recentChanges.reduce((sum, change) => sum + change.loss, 0) / 14;
+
+    if (averageLoss === 0) {
+      return 100;
+    }
+
+    return 100 - 100 / (1 + averageGain / averageLoss);
+  });
+
+  const rsiDrawableWidth = rsiWidth - rsiPadding * 2;
+  const rsiDrawableHeight = rsiHeight - rsiPadding * 2;
+
+  const rsiPoints = candles
+    .map((_, index) => {
+      const rsi = rsiValues[index];
+
+      if (rsi === null) {
+        return null;
+      }
+
+      const x = rsiPadding + (index / (candles.length - 1)) * rsiDrawableWidth;
+      const normalizedRsi = rsi / 100;
+      const y = rsiPadding + (1 - normalizedRsi) * rsiDrawableHeight;
 
       return `${x},${y}`;
     })
@@ -154,6 +205,60 @@ export function PriceChart({ candles }: PriceChartProps) {
           })}
         </span>
       </div>
+
+      {candles.length >= 15 && (
+        <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+          <div className="mb-4 flex items-center justify-between gap-4 text-xs text-zinc-500">
+            <span className="font-medium uppercase tracking-wider text-zinc-400">
+              RSI 14
+            </span>
+
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-violet-400" />
+                <span>RSI 14</span>
+              </span>
+              <span>70</span>
+              <span>30</span>
+            </div>
+          </div>
+
+          <svg
+            viewBox={`0 0 ${rsiWidth} ${rsiHeight}`}
+            role="img"
+            aria-label="RSI 14 chart"
+            className="h-auto w-full"
+          >
+            <line
+              x1={rsiPadding}
+              y1={rsiPadding + (1 - 0.7) * rsiDrawableHeight}
+              x2={rsiWidth - rsiPadding}
+              y2={rsiPadding + (1 - 0.7) * rsiDrawableHeight}
+              stroke="currentColor"
+              className="text-zinc-700"
+            />
+
+            <line
+              x1={rsiPadding}
+              y1={rsiPadding + (1 - 0.3) * rsiDrawableHeight}
+              x2={rsiWidth - rsiPadding}
+              y2={rsiPadding + (1 - 0.3) * rsiDrawableHeight}
+              stroke="currentColor"
+              className="text-zinc-700"
+            />
+
+            <polyline
+              points={rsiPoints}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-violet-400"
+            />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
