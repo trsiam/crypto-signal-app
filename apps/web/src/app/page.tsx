@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 
 import { PriceChart } from "../components/price-chart";
 import { useMarketCandles } from "../hooks/use-market-candles";
@@ -9,8 +10,16 @@ const symbols = [
   { value: "ETHUSDT", label: "Ethereum" },
   { value: "SOLUSDT", label: "Solana" },
 ];
+const chartIntervals = [
+  { value: "15m", label: "15m" },
+  { value: "1h", label: "1h" },
+  { value: "4h", label: "4h" },
+  { value: "1d", label: "1d" },
+];
 
 export default function Home() {
+  const [chartInterval, setChartInterval] = useState("1h");
+
   const {
     selectedSymbol,
     marketPrice,
@@ -29,7 +38,7 @@ export default function Home() {
     refreshCandles,
   } = useMarketCandles({
     symbol: selectedSymbol,
-    interval: "1h",
+    interval: chartInterval,
     limit: 100,
   });
 
@@ -137,8 +146,25 @@ export default function Home() {
               </p>
 
               <p className="mt-2 text-sm text-zinc-500">
-                Last 100 hourly closing prices
+                Last 100 candles using the {chartInterval} timeframe
               </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {chartIntervals.map((interval) => (
+                  <button
+                    key={interval.value}
+                    type="button"
+                    onClick={() => setChartInterval(interval.value)}
+                    className={
+                      chartInterval === interval.value
+                        ? "rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-zinc-950"
+                        : "rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-emerald-500 hover:text-emerald-400"
+                    }
+                  >
+                    {interval.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button
