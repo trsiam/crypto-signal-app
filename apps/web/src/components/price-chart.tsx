@@ -10,6 +10,9 @@ const chartPadding = 24;
 const rsiWidth = 800;
 const rsiHeight = 160;
 const rsiPadding = 24;
+const macdWidth = 800;
+const macdHeight = 200;
+const macdPadding = 24;
 
 export function PriceChart({ candles }: PriceChartProps) {
   if (candles.length < 2) {
@@ -130,6 +133,199 @@ export function PriceChart({ candles }: PriceChartProps) {
     })
     .filter((point): point is string => point !== null)
     .join(" ");
+
+  const emaValues = (period: number) => {
+    const multiplier = 2 / (period + 1);
+    const values: Array<number | null> = Array(candles.length).fill(null);
+
+    if (candles.length < period) {
+      return values;
+    }
+
+    const firstAverage =
+      candles.slice(0, period).reduce((sum, candle) => sum + candle.close, 0) /
+      period;
+    values[period - 1] = firstAverage;
+
+    for (let index = period; index < candles.length; index += 1) {
+      const previousEma = values[index - 1];
+
+      if (previousEma === null) {
+        continue;
+      }
+
+      values[index] =
+        (candles[index].close - previousEma) * multiplier + previousEma;
+    }
+
+    return values;
+  };
+
+  const fastEmaValues = emaValues(12);
+  const slowEmaValues = emaValues(26);
+
+  const macdLineValues = candles.map((_, index) => {
+    const fastEma = fastEmaValues[index];
+    const slowEma = slowEmaValues[index];
+
+    if (fastEma === null || slowEma === null) {
+      return null;
+    }
+
+    return fastEma - slowEma;
+  });
+
+  const macdSignalValues = (() => {
+    const values: Array<number | null> = Array(candles.length).fill(null);
+    const macdLineAvailable = macdLineValues
+      .map((value, index) => ({ value, index }))
+      .filter(
+        (
+          item,
+        ): item is {
+          value: number;
+          index: number;
+        } => item.value !== null,
+      );
+
+    if (macdLineAvailable.length < 9) {
+      return values;
+    }
+
+    const multiplier = 2 / (9 + 1);
+    const firstSignalIndex = macdLineAvailable[8].index;
+    const firstSignalAverage =
+      macdLineAvailable
+        .slice(0, 9)
+        .reduce((sum, item) => sum + item.value, 0) / 9;
+    values[firstSignalIndex] = firstSignalAverage;
+
+    for (
+      let availableIndex = 9;
+      availableIndex < macdLineAvailable.length;
+      availableIndex += 1
+    ) {
+      const currentIndex = macdLineAvailable[availableIndex].index;
+      const previousIndex = macdLineAvailable[availableIndex - 1].index;
+      const previousSignal = values[previousIndex];
+
+      if (previousSignal === null) {
+        continue;
+      }
+
+      values[currentIndex] =
+        (macdLineAvailable[availableIndex].value - previousSignal) *
+          multiplier +
+        previousSignal;
+    }
+
+    return values;
+  })();
+
+  const macdHistogramValues = candles.map((_, index) => {
+    const macdLine = macdLineValues[index];
+    const signalLine = macdSignalValues[index];
+
+    if (macdLine === null || signalLine === null) {
+      return null;
+    }
+
+    return macdLine - signalLine;
+  });
+
+  const macdAvailableValues = candles
+    .map((_, index) => {
+      const macdLine = macdLineValues[index];
+      const signalLine = macdSignalValues[index];
+      const histogram = macdHistogramValues[index];
+
+      if (macdLine === null || signalLine === null || histogram === null) {
+        return null;
+      }
+
+      return [macdLine, signalLine, histogram];
+    })
+    .filter((value): value is [number, number, number] => value !== null);
+
+  const macdMinValue = macdAvailableValues.length
+    ? Math.min(0, ...macdAvailableValues.flat())
+    : 0;
+  const macdMaxValue = macdAvailableValues.length
+    ? Math.max(0, ...macdAvailableValues.flat())
+    : 0;
+  const macdRange = macdMaxValue - macdMinValue || 1;
+  const macdDrawableWidth = macdWidth - macdPadding * 2;
+  const macdDrawableHeight = macdHeight - macdPadding * 2;
+
+  const macdLinePoints = candles
+    .map((_, index) => {
+      const macdLine = macdLineValues[index];
+
+      if (macdLine === null) {
+        return null;
+      }
+
+      const x =
+        macdPadding +
+        (index / (candles.length - 1)) * macdDrawableWidth;
+      const normalizedValue = (macdLine - macdMinValue) / macdRange;
+      const y = macdPadding + (1 - normalizedValue) * macdDrawableHeight;
+
+      return `${x},${y}`;
+    })
+    .filter((point): point is string => point !== null)
+    .join(" ");
+
+  const macdSignalPoints = candles
+    .map((_, index) => {
+      const signalLine = macdSignalValues[index];
+
+      if (signalLine === null) {
+        return null;
+      }
+
+      const x =
+        macdPadding +
+        (index / (candles.length - 1)) * macdDrawableWidth;
+      const normalizedValue = (signalLine - macdMinValue) / macdRange;
+      const y = macdPadding + (1 - normalizedValue) * macdDrawableHeight;
+
+      return `${x},${y}`;
+    })
+    .filter((point): point is string => point !== null)
+    .join(" ");
+
+  const macdHistogramBars = candles
+    .map((_, index) => {
+      const histogram = macdHistogramValues[index];
+
+      if (histogram === null) {
+        return null;
+      }
+
+      const x =
+        macdPadding +
+        (index / (candles.length - 1)) * macdDrawableWidth;
+      const yZero =
+        macdPadding +
+        (1 - (0 - macdMinValue) / macdRange) * macdDrawableHeight;
+      const normalizedValue = (histogram - macdMinValue) / macdRange;
+      const y = macdPadding + (1 - normalizedValue) * macdDrawableHeight;
+      const height = Math.abs(yZero - y);
+      const barY = histogram >= 0 ? y : yZero;
+
+      return { x, y: barY, height, positive: histogram >= 0 };
+    })
+    .filter(
+      (
+        bar,
+      ): bar is {
+        x: number;
+        y: number;
+        height: number;
+        positive: boolean;
+      } => bar !== null,
+    );
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-4">
@@ -255,6 +451,79 @@ export function PriceChart({ candles }: PriceChartProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               className="text-violet-400"
+            />
+          </svg>
+        </div>
+      )}
+
+      {candles.length >= 35 && (
+        <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-500">
+            <span className="font-medium uppercase tracking-wider text-zinc-400">
+              MACD 12, 26, 9
+            </span>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-sky-400" />
+                <span>MACD</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-orange-400" />
+                <span>Signal</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-zinc-400" />
+                <span>Histogram</span>
+              </span>
+            </div>
+          </div>
+
+          <svg
+            viewBox={`0 0 ${macdWidth} ${macdHeight}`}
+            role="img"
+            aria-label="MACD 12 26 9 chart"
+            className="h-auto w-full"
+          >
+            <line
+              x1={macdPadding}
+              y1={macdPadding + (1 - (0 - macdMinValue) / macdRange) * macdDrawableHeight}
+              x2={macdWidth - macdPadding}
+              y2={macdPadding + (1 - (0 - macdMinValue) / macdRange) * macdDrawableHeight}
+              stroke="currentColor"
+              className="text-zinc-700"
+            />
+
+            {macdHistogramBars.map((bar, index) => (
+              <rect
+                key={`${index}-${bar.x}`}
+                x={bar.x - 3}
+                y={bar.y}
+                width="6"
+                height={bar.height}
+                fill="currentColor"
+                className={bar.positive ? "text-emerald-500" : "text-rose-500"}
+              />
+            ))}
+
+            <polyline
+              points={macdLinePoints}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-sky-400"
+            />
+
+            <polyline
+              points={macdSignalPoints}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-orange-400"
             />
           </svg>
         </div>

@@ -36,6 +36,32 @@ const rsiCandles = Array.from({ length: 14 }, (_, index) => {
   };
 });
 
+const macdCandles = Array.from({ length: 34 }, (_, index) => {
+  const close = 300 + index;
+
+  return {
+    open: close - 1,
+    high: close + 2,
+    low: close - 2,
+    close,
+    volume: 3000 + index,
+    closeTime: 1_700_200_000_000 + index * 60_000,
+  };
+});
+
+const macdVisibleCandles = Array.from({ length: 40 }, (_, index) => {
+  const close = 400 + index;
+
+  return {
+    open: close - 1,
+    high: close + 2,
+    low: close - 2,
+    close,
+    volume: 4000 + index,
+    closeTime: 1_700_300_000_000 + index * 60_000,
+  };
+});
+
 describe("PriceChart", () => {
   it("renders the closing-price legend", () => {
     render(<PriceChart candles={candles} />);
@@ -93,6 +119,30 @@ describe("PriceChart", () => {
     expect(
       screen.queryByRole("img", {
         name: "RSI 14 chart",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders the MACD panel when enough candles are passed", () => {
+    render(<PriceChart candles={macdVisibleCandles} />);
+
+    expect(screen.getByText("MACD 12, 26, 9")).toBeVisible();
+    expect(screen.getByText("MACD")).toBeVisible();
+    expect(screen.getByText("Signal")).toBeVisible();
+    expect(screen.getByText("Histogram")).toBeVisible();
+    expect(
+      screen.getByRole("img", {
+        name: "MACD 12 26 9 chart",
+      }),
+    ).toBeVisible();
+  });
+
+  it("does not render the MACD panel when only 34 candles are passed", () => {
+    render(<PriceChart candles={macdCandles} />);
+
+    expect(
+      screen.queryByRole("img", {
+        name: "MACD 12 26 9 chart",
       }),
     ).not.toBeInTheDocument();
   });
