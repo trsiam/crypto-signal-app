@@ -25,6 +25,20 @@ export function PriceChart({ candles }: PriceChartProps) {
   const drawableWidth = chartWidth - chartPadding * 2;
   const drawableHeight = chartHeight - chartPadding * 2;
 
+  const movingAverages = candles.map((candle, index) => {
+    if (index < 19) {
+      return null;
+    }
+
+    const recentCandles = candles.slice(index - 19, index + 1);
+    const totalClose = recentCandles.reduce(
+      (sum, currentCandle) => sum + currentCandle.close,
+      0,
+    );
+
+    return totalClose / 20;
+  });
+
   const points = candles
     .map((candle, index) => {
       const x =
@@ -42,8 +56,44 @@ export function PriceChart({ candles }: PriceChartProps) {
     })
     .join(" ");
 
+  const movingAveragePoints = candles
+    .map((candle, index) => {
+      const movingAverage = movingAverages[index];
+
+      if (movingAverage === null) {
+        return null;
+      }
+
+      const x =
+        chartPadding +
+        (index / (candles.length - 1)) * drawableWidth;
+
+      const normalizedPrice =
+        (movingAverage - minimumPrice) / priceRange;
+
+      const y =
+        chartPadding +
+        (1 - normalizedPrice) * drawableHeight;
+
+      return `${x},${y}`;
+    })
+    .filter((point): point is string => point !== null)
+    .join(" ");
+
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+      <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-zinc-500">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          <span>Closing price</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          <span>SMA 20</span>
+        </div>
+      </div>
+
       <svg
         viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         role="img"
@@ -76,6 +126,16 @@ export function PriceChart({ candles }: PriceChartProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
           className="text-emerald-400"
+        />
+
+        <polyline
+          points={movingAveragePoints}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-amber-400"
         />
       </svg>
 
