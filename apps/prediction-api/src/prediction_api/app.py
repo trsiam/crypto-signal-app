@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
+from prediction_api.candles import CandleDataError, get_candles
 from prediction_api.dependencies import check_postgres, check_redis
 from prediction_api.market_data import MarketDataError, get_current_price
 
@@ -47,6 +48,38 @@ def current_market_price(symbol: str) -> dict[str, str | float]:
     try:
         return get_current_price(normalized_symbol)
     except MarketDataError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+@app.get("/market/candles/{symbol}")
+def market_candles(
+    symbol: str,
+    interval: str = "1h",
+    limit: int = 100,
+) -> list[dict[str, int | float]]:
+    normalized_symbol = symbol.upper()
+
+    if not normalized_symbol.isalnum():
+        raise HTTPException(
+            status_code=422,
+            detail="Symbol must contain only letters and numbers",
+        )
+
+    if limit < 1 or limit > 1000:
+        raise HTTPException(
+            status_code=422,
+            detail="Limit must be between 1 and 1000",
+        )
+
+    try:
+        return get_candles(
+            normalized_symbol,
+            interval,
+            limit,
+        )
+    except CandleDataError as exc:
         raise HTTPException(
             status_code=502,
             detail=str(exc),
