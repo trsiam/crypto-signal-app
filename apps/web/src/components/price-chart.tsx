@@ -1,4 +1,9 @@
 import type { MarketCandle } from "../hooks/use-market-candles";
+import {
+  calculateMacd,
+  calculateRsi,
+  calculateSma,
+} from "../lib/technical-indicators";
 
 type PriceChartProps = {
   candles: MarketCandle[];
@@ -31,19 +36,7 @@ export function PriceChart({ candles }: PriceChartProps) {
   const drawableWidth = chartWidth - chartPadding * 2;
   const drawableHeight = chartHeight - chartPadding * 2;
 
-  const movingAverages = candles.map((candle, index) => {
-    if (index < 19) {
-      return null;
-    }
-
-    const recentCandles = candles.slice(index - 19, index + 1);
-    const totalClose = recentCandles.reduce(
-      (sum, currentCandle) => sum + currentCandle.close,
-      0,
-    );
-
-    return totalClose / 20;
-  });
+  const movingAverages = calculateSma(closingPrices, 20);
 
   const points = candles
     .map((candle, index) => {
@@ -86,33 +79,7 @@ export function PriceChart({ candles }: PriceChartProps) {
     .filter((point): point is string => point !== null)
     .join(" ");
 
-  const priceChanges = candles.slice(1).map((candle, index) => {
-    const previousClose = candles[index].close;
-    const change = candle.close - previousClose;
-
-    return {
-      gain: change > 0 ? change : 0,
-      loss: change < 0 ? Math.abs(change) : 0,
-    };
-  });
-
-  const rsiValues = candles.map((_, index) => {
-    if (index < 14) {
-      return null;
-    }
-
-    const recentChanges = priceChanges.slice(index - 13, index + 1);
-    const averageGain =
-      recentChanges.reduce((sum, change) => sum + change.gain, 0) / 14;
-    const averageLoss =
-      recentChanges.reduce((sum, change) => sum + change.loss, 0) / 14;
-
-    if (averageLoss === 0) {
-      return 100;
-    }
-
-    return 100 - 100 / (1 + averageGain / averageLoss);
-  });
+  const rsiValues = calculateRsi(closingPrices, 14);
 
   const rsiDrawableWidth = rsiWidth - rsiPadding * 2;
   const rsiDrawableHeight = rsiHeight - rsiPadding * 2;
@@ -134,116 +101,21 @@ export function PriceChart({ candles }: PriceChartProps) {
     .filter((point): point is string => point !== null)
     .join(" ");
 
-  const emaValues = (period: number) => {
-    const multiplier = 2 / (period + 1);
-    const values: Array<number | null> = Array(candles.length).fill(null);
-
-    if (candles.length < period) {
-      return values;
-    }
-
-    const firstAverage =
-      candles.slice(0, period).reduce((sum, candle) => sum + candle.close, 0) /
-      period;
-    values[period - 1] = firstAverage;
-
-    for (let index = period; index < candles.length; index += 1) {
-      const previousEma = values[index - 1];
-
-      if (previousEma === null) {
-        continue;
-      }
-
-      values[index] =
-        (candles[index].close - previousEma) * multiplier + previousEma;
-    }
-
-    return values;
-  };
-
-  const fastEmaValues = emaValues(12);
-  const slowEmaValues = emaValues(26);
-
-  const macdLineValues = candles.map((_, index) => {
-    const fastEma = fastEmaValues[index];
-    const slowEma = slowEmaValues[index];
-
-    if (fastEma === null || slowEma === null) {
-      return null;
-    }
-
-    return fastEma - slowEma;
-  });
-
-  const macdSignalValues = (() => {
-    const values: Array<number | null> = Array(candles.length).fill(null);
-    const macdLineAvailable = macdLineValues
-      .map((value, index) => ({ value, index }))
-      .filter(
-        (
-          item,
-        ): item is {
-          value: number;
-          index: number;
-        } => item.value !== null,
-      );
-
-    if (macdLineAvailable.length < 9) {
-      return values;
-    }
-
-    const multiplier = 2 / (9 + 1);
-    const firstSignalIndex = macdLineAvailable[8].index;
-    const firstSignalAverage =
-      macdLineAvailable
-        .slice(0, 9)
-        .reduce((sum, item) => sum + item.value, 0) / 9;
-    values[firstSignalIndex] = firstSignalAverage;
-
-    for (
-      let availableIndex = 9;
-      availableIndex < macdLineAvailable.length;
-      availableIndex += 1
-    ) {
-      const currentIndex = macdLineAvailable[availableIndex].index;
-      const previousIndex = macdLineAvailable[availableIndex - 1].index;
-      const previousSignal = values[previousIndex];
-
-      if (previousSignal === null) {
-        continue;
-      }
-
-      values[currentIndex] =
-        (macdLineAvailable[availableIndex].value - previousSignal) *
-          multiplier +
-        previousSignal;
-    }
-
-    return values;
-  })();
-
-  const macdHistogramValues = candles.map((_, index) => {
-    const macdLine = macdLineValues[index];
-    const signalLine = macdSignalValues[index];
-
-    if (macdLine === null || signalLine === null) {
-      return null;
-    }
-
-    return macdLine - signalLine;
-  });
-
-  const macdAvailableValues = candles
-    .map((_, index) => {
-      const macdLine = macdLineValues[index];
-      const signalLine = macdSignalValues[index];
-      const histogram = macdHistogramValues[index];
-
-      if (macdLine === null || signalLine === null || histogram === null) {
+  const macdValues = calculateMacd(closingPrices);
+  const macdLineValues = macdValues.map((point) => point.macd);
+  const macdSignalValues = macdValues.map((point) => point.signal);
+  const macdHistogramValues = macdValues.map((point) => point.histogram);
+  const macdAvailableValues = macdValues
+    .map((point) => {
+      if (
+        point.macd === null ||
+        point.signal === null ||
+        point.histogram === null
+      ) {
         return null;
       }
 
-      return [macdLine, signalLine, histogram];
+      return [point.macd, point.signal, point.histogram];
     })
     .filter((value): value is [number, number, number] => value !== null);
 
