@@ -10,22 +10,52 @@ import {
   waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { MarketCandle } from "../hooks/use-market-candles";
 import Home from "./page";
 
-vi.mock("../hooks/use-market-candles", () => ({
-  useMarketCandles: () => ({
-    candles: [],
-    isLoading: false,
-    isRefreshing: false,
-    error: null,
-    lastUpdated: null,
-    refreshCandles: vi.fn(),
+const { generateSignalFromCandlesMock, useMarketCandlesMock } = vi.hoisted(
+  () => ({
+    generateSignalFromCandlesMock: vi.fn(),
+    useMarketCandlesMock: vi.fn(),
   }),
+);
+
+vi.mock("../hooks/use-market-candles", () => ({
+  useMarketCandles: useMarketCandlesMock,
 }));
 
+vi.mock("../lib/market-signal", () => ({
+  generateSignalFromCandles: generateSignalFromCandlesMock,
+}));
+
+const mockCandle: MarketCandle = {
+  open_time: 1_700_000_000_000,
+  open: 64_800,
+  high: 65_100,
+  low: 64_700,
+  close: 65_000,
+  volume: 1_250,
+  close_time: 1_700_003_599_999,
+};
+
 describe("Home page", () => {
+  beforeEach(() => {
+    useMarketCandlesMock.mockReset();
+    useMarketCandlesMock.mockReturnValue({
+      candles: [],
+      isLoading: false,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+
+    generateSignalFromCandlesMock.mockReset();
+    generateSignalFromCandlesMock.mockReturnValue(null);
+  });
+
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
@@ -314,5 +344,78 @@ describe("Home page", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("displays a generated live signal", () => {
+    useMarketCandlesMock.mockReturnValue({
+      candles: [mockCandle],
+      isLoading: false,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+    generateSignalFromCandlesMock.mockReturnValue({
+      direction: "Bullish",
+      signal: "Buy",
+      confidence: 90,
+      risk: "Low",
+      score: 3,
+      reasons: [
+        "Price is above SMA 20.",
+        "RSI shows bullish momentum.",
+        "MACD confirms bullish momentum.",
+      ],
+    });
+
+    render(<Home />);
+
+    expect(screen.getByText("Live signal")).toBeVisible();
+    expect(screen.getByText("Bullish")).toBeVisible();
+    expect(screen.getByText("90%")).toBeVisible();
+    expect(screen.getByText("Low risk")).toBeVisible();
+    expect(screen.getByText("Price is above SMA 20.")).toBeVisible();
+    expect(screen.getByText("RSI shows bullish momentum.")).toBeVisible();
+    expect(
+      screen.getByText("MACD confirms bullish momentum."),
+    ).toBeVisible();
+
+    const buyElements = screen.getAllByText("Buy");
+    expect(buyElements).toHaveLength(2);
+    buyElements.forEach((element) => expect(element).toBeVisible());
+  });
+
+  it("displays the signal-loading message", () => {
+    useMarketCandlesMock.mockReturnValue({
+      candles: [],
+      isLoading: true,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+    generateSignalFromCandlesMock.mockReturnValue(null);
+
+    render(<Home />);
+
+    expect(screen.getByText("Calculating live signal...")).toBeVisible();
+  });
+
+  it("displays the insufficient-history message", () => {
+    useMarketCandlesMock.mockReturnValue({
+      candles: [mockCandle],
+      isLoading: false,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+    generateSignalFromCandlesMock.mockReturnValue(null);
+
+    render(<Home />);
+
+    expect(
+      screen.getByText("Not enough market history to calculate a signal."),
+    ).toBeVisible();
   });
 });

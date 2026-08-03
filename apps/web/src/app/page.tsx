@@ -2,8 +2,10 @@
 import { useState } from "react";
 
 import { PriceChart } from "../components/price-chart";
+import { SignalCard } from "../components/signal-card";
 import { useMarketCandles } from "../hooks/use-market-candles";
 import { useMarketPrice } from "../hooks/use-market-price";
+import { generateSignalFromCandles } from "../lib/market-signal";
 
 const symbols = [
   { value: "BTCUSDT", label: "Bitcoin" },
@@ -41,6 +43,8 @@ export default function Home() {
     interval: chartInterval,
     limit: 100,
   });
+
+  const liveSignal = generateSignalFromCandles(candles);
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -137,6 +141,28 @@ export default function Home() {
             )}
           </div>
         </section>
+
+        {liveSignal !== null && (
+          <SignalCard
+            signal={liveSignal}
+            symbol={selectedSymbol}
+            timeframe={chartInterval}
+          />
+        )}
+
+        {areCandlesLoading && liveSignal === null && (
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-zinc-400">
+            Calculating live signal...
+          </section>
+        )}
+
+        {!areCandlesLoading &&
+          candles.length > 0 &&
+          liveSignal === null && (
+            <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-zinc-400">
+              Not enough market history to calculate a signal.
+            </section>
+          )}
 
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
           <div className="flex items-center justify-between gap-4">
