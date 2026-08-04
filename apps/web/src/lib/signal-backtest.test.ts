@@ -92,6 +92,17 @@ describe("backtestSignals", () => {
     },
   );
 
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    "throws a clear error for an invalid trading cost of %s",
+    (tradingCostPercent) => {
+      expect(() =>
+        backtestSignals([], 1, 1, 0, tradingCostPercent),
+      ).toThrow(
+        "tradingCostPercent must be a finite number greater than or equal to 0.",
+      );
+    },
+  );
+
   it("returns an empty result when candles are insufficient", () => {
     const candles = [createCandle(0, 100), createCandle(1, 105)];
 
@@ -162,6 +173,43 @@ describe("backtestSignals", () => {
       outcome: "Loss",
       returnPercent: -10,
     });
+  });
+
+  it("subtracts the trading cost from a Buy trade return", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 110)];
+
+    const result = backtestSignals(candles, 1, 1, 0, 0.25);
+
+    expect(result.trades[0].returnPercent).toBeCloseTo(9.75);
+  });
+
+  it("subtracts the trading cost from a Sell trade return", () => {
+    generateSignalMock.mockReturnValue(sellSignal);
+    const candles = [createCandle(0, 100), createCandle(1, 90)];
+
+    const result = backtestSignals(candles, 1, 1, 0, 0.25);
+
+    expect(result.trades[0].returnPercent).toBeCloseTo(9.75);
+  });
+
+  it("keeps a profitable gross trade outcome after costs reduce its net return", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 100.1)];
+
+    const result = backtestSignals(candles, 1, 1, 0, 0.2);
+
+    expect(result.trades[0].outcome).toBe("Win");
+    expect(result.trades[0].returnPercent).toBeCloseTo(-0.1);
+  });
+
+  it("preserves the previous return when the trading cost is zero", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 110)];
+
+    const result = backtestSignals(candles, 1, 1, 0, 0);
+
+    expect(result.trades[0].returnPercent).toBe(10);
   });
 
   it("records a neutral trade without affecting win rate", () => {

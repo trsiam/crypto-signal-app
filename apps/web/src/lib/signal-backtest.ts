@@ -33,6 +33,7 @@ export function backtestSignals(
   lookback = 35,
   horizon = 1,
   neutralThresholdPercent = 0,
+  tradingCostPercent = 0,
 ): BacktestResult {
   if (!Number.isInteger(lookback) || lookback < 1) {
     throw new Error("lookback must be at least 1 and an integer.");
@@ -48,6 +49,12 @@ export function backtestSignals(
   ) {
     throw new Error(
       "neutralThresholdPercent must be a finite number greater than or equal to 0.",
+    );
+  }
+
+  if (!Number.isFinite(tradingCostPercent) || tradingCostPercent < 0) {
+    throw new Error(
+      "tradingCostPercent must be a finite number greater than or equal to 0.",
     );
   }
 
@@ -91,10 +98,11 @@ export function backtestSignals(
       }
     }
 
-    const returnPercent =
+    const grossReturnPercent =
       result.signal === "Buy"
         ? ((exitPrice - entryPrice) / entryPrice) * 100
         : ((entryPrice - exitPrice) / entryPrice) * 100;
+    const returnPercent = grossReturnPercent - tradingCostPercent;
 
     trades.push({
       signalIndex,
