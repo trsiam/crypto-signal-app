@@ -42,11 +42,14 @@ describe("BacktestCard", () => {
     expect(screen.getByText("Losses")).toBeVisible();
     expect(screen.getByText("Neutral")).toBeVisible();
     expect(screen.getByText("Historical win rate")).toBeVisible();
-    expect(screen.getByText("Average return")).toBeVisible();
+    expect(screen.getByText("Average net return")).toBeVisible();
     expect(screen.getByText("66.67%")).toBeVisible();
     expect(screen.getByText("1.2345%")).toBeVisible();
     expect(screen.getByText("Neutral threshold: 0.1%")).toBeVisible();
     expect(screen.getByText("Trading cost: 0.1%")).toBeVisible();
+    expect(
+      screen.getByText("Returns shown after estimated trading costs."),
+    ).toBeVisible();
     expect(
       screen.getByText(
         "Historical results do not guarantee future performance.",

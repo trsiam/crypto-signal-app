@@ -80,7 +80,7 @@ export function BacktestCard({
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
           <dt className="text-xs uppercase tracking-wider text-zinc-500">
-            Average return
+            Average net return
           </dt>
           <dd className="mt-2 font-medium text-zinc-100">
             {result.averageReturnPercent}%
@@ -94,6 +94,9 @@ export function BacktestCard({
       >
         <p>Neutral threshold: {neutralThresholdPercent}%</p>
         <p className="mt-1">Trading cost: {tradingCostPercent}%</p>
+        <p className="mt-3 border-t border-zinc-800 pt-3 text-zinc-500">
+          Returns shown after estimated trading costs.
+        </p>
       </div>
 
       <p className="mt-6 border-t border-zinc-800 pt-5 text-sm text-zinc-500">
