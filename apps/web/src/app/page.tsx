@@ -22,6 +22,7 @@ const chartIntervals = [
 ];
 const backtestLookback = 35;
 const backtestHorizon = 1;
+const backtestNeutralThresholdPercent = 0.1;
 
 export default function Home() {
   const [chartInterval, setChartInterval] = useState("1h");
@@ -55,6 +56,7 @@ export default function Home() {
         candles,
         backtestLookback,
         backtestHorizon,
+        backtestNeutralThresholdPercent,
       ),
     [candles],
   );

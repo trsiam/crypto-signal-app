@@ -473,18 +473,25 @@ describe("Home page", () => {
       sufficientCandles,
       35,
       1,
+      0.1,
     );
   });
 
   it("updates historical performance when the timeframe changes", async () => {
-    useMarketCandlesMock.mockReturnValue({
-      candles: sufficientCandles,
-      isLoading: false,
-      isRefreshing: false,
-      error: null,
-      lastUpdated: null,
-      refreshCandles: vi.fn(),
-    });
+    const updatedTimeframeCandles = [...sufficientCandles];
+    useMarketCandlesMock.mockImplementation(
+      ({ interval }: { interval: string }) => ({
+        candles:
+          interval === "4h"
+            ? updatedTimeframeCandles
+            : sufficientCandles,
+        isLoading: false,
+        isRefreshing: false,
+        error: null,
+        lastUpdated: null,
+        refreshCandles: vi.fn(),
+      }),
+    );
     const user = userEvent.setup();
 
     render(<Home />);
@@ -497,5 +504,11 @@ describe("Home page", () => {
       interval: "4h",
       limit: 100,
     });
+    expect(backtestSignalsMock).toHaveBeenLastCalledWith(
+      updatedTimeframeCandles,
+      35,
+      1,
+      0.1,
+    );
   });
 });
