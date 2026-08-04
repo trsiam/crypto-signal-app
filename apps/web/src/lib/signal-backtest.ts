@@ -32,6 +32,7 @@ export function backtestSignals(
   candles: MarketCandle[],
   lookback = 35,
   horizon = 1,
+  neutralThresholdPercent = 0,
 ): BacktestResult {
   if (!Number.isInteger(lookback) || lookback < 1) {
     throw new Error("lookback must be at least 1 and an integer.");
@@ -39,6 +40,15 @@ export function backtestSignals(
 
   if (!Number.isInteger(horizon) || horizon < 1) {
     throw new Error("horizon must be at least 1 and an integer.");
+  }
+
+  if (
+    !Number.isFinite(neutralThresholdPercent) ||
+    neutralThresholdPercent < 0
+  ) {
+    throw new Error(
+      "neutralThresholdPercent must be a finite number greater than or equal to 0.",
+    );
   }
 
   const trades: BacktestTrade[] = [];
@@ -66,15 +76,19 @@ export function backtestSignals(
     const exitPrice = candles[exitIndex].close;
     const priceIncreased = exitPrice > entryPrice;
     const priceDecreased = exitPrice < entryPrice;
+    const priceMovementPercent =
+      Math.abs((exitPrice - entryPrice) / entryPrice) * 100;
     let outcome: BacktestOutcome = "Neutral";
 
-    if (
-      (result.signal === "Buy" && priceIncreased) ||
-      (result.signal === "Sell" && priceDecreased)
-    ) {
-      outcome = "Win";
-    } else if (priceIncreased || priceDecreased) {
-      outcome = "Loss";
+    if (priceMovementPercent > neutralThresholdPercent) {
+      if (
+        (result.signal === "Buy" && priceIncreased) ||
+        (result.signal === "Sell" && priceDecreased)
+      ) {
+        outcome = "Win";
+      } else if (priceIncreased || priceDecreased) {
+        outcome = "Loss";
+      }
     }
 
     const returnPercent =

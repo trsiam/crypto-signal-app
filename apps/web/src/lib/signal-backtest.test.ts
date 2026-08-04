@@ -81,6 +81,17 @@ describe("backtestSignals", () => {
     );
   });
 
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    "throws a clear error for an invalid neutral threshold of %s",
+    (neutralThresholdPercent) => {
+      expect(() =>
+        backtestSignals([], 1, 1, neutralThresholdPercent),
+      ).toThrow(
+        "neutralThresholdPercent must be a finite number greater than or equal to 0.",
+      );
+    },
+  );
+
   it("returns an empty result when candles are insufficient", () => {
     const candles = [createCandle(0, 100), createCandle(1, 105)];
 
@@ -167,6 +178,51 @@ describe("backtestSignals", () => {
     expect(result.wins).toBe(0);
     expect(result.losses).toBe(0);
     expect(result.winRate).toBe(0);
+  });
+
+  it("classifies a tiny upward move for a Buy signal as Neutral", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 100.1)];
+
+    const result = backtestSignals(candles, 1, 1, 0.1);
+
+    expect(result.trades[0]).toMatchObject({
+      signal: "Buy",
+      outcome: "Neutral",
+    });
+    expect(result.trades[0].returnPercent).toBeCloseTo(0.1);
+  });
+
+  it("classifies a tiny downward move for a Sell signal as Neutral", () => {
+    generateSignalMock.mockReturnValue(sellSignal);
+    const candles = [createCandle(0, 100), createCandle(1, 99.9)];
+
+    const result = backtestSignals(candles, 1, 1, 0.1);
+
+    expect(result.trades[0]).toMatchObject({
+      signal: "Sell",
+      outcome: "Neutral",
+    });
+    expect(result.trades[0].returnPercent).toBeCloseTo(0.1);
+  });
+
+  it("classifies a move exactly equal to the threshold as Neutral", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 100.5)];
+
+    const result = backtestSignals(candles, 1, 1, 0.5);
+
+    expect(result.trades[0].outcome).toBe("Neutral");
+  });
+
+  it("evaluates a move greater than the threshold as Win or Loss", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [createCandle(0, 100), createCandle(1, 99.4)];
+
+    const result = backtestSignals(candles, 1, 1, 0.5);
+
+    expect(result.trades[0].outcome).toBe("Loss");
+    expect(result.trades[0].returnPercent).toBeCloseTo(-0.6);
   });
 
   it("ignores Hold signals", () => {
