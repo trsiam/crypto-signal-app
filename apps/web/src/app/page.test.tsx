@@ -474,6 +474,7 @@ describe("Home page", () => {
       35,
       1,
       0.1,
+      0.1,
     );
   });
 
@@ -508,6 +509,7 @@ describe("Home page", () => {
       updatedTimeframeCandles,
       35,
       1,
+      0.1,
       0.1,
     );
   });
