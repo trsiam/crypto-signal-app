@@ -469,6 +469,8 @@ describe("Home page", () => {
       screen.getByRole("heading", { name: "BTCUSDT" }),
     ).toBeVisible();
     expect(screen.getByText("1h / 1 candle ahead")).toBeVisible();
+    expect(screen.getByText("Neutral threshold: 0.1%")).toBeVisible();
+    expect(screen.getByText("Trading cost: 0.1%")).toBeVisible();
     expect(backtestSignalsMock).toHaveBeenCalledWith(
       sufficientCandles,
       35,

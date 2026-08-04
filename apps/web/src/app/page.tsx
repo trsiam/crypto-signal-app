@@ -187,6 +187,8 @@ export default function Home() {
             symbol={selectedSymbol}
             timeframe={chartInterval}
             horizon={backtestHorizon}
+            neutralThresholdPercent={backtestNeutralThresholdPercent}
+            tradingCostPercent={backtestTradingCostPercent}
           />
         )}
 

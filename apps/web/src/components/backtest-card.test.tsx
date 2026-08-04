@@ -29,6 +29,8 @@ describe("BacktestCard", () => {
         symbol="BTCUSDT"
         timeframe="1h"
         horizon={1}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
       />,
     );
 
@@ -43,6 +45,8 @@ describe("BacktestCard", () => {
     expect(screen.getByText("Average return")).toBeVisible();
     expect(screen.getByText("66.67%")).toBeVisible();
     expect(screen.getByText("1.2345%")).toBeVisible();
+    expect(screen.getByText("Neutral threshold: 0.1%")).toBeVisible();
+    expect(screen.getByText("Trading cost: 0.1%")).toBeVisible();
     expect(
       screen.getByText(
         "Historical results do not guarantee future performance.",
@@ -57,6 +61,8 @@ describe("BacktestCard", () => {
         symbol="BTCUSDT"
         timeframe="1h"
         horizon={3}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
       />,
     );
 
@@ -70,6 +76,8 @@ describe("BacktestCard", () => {
         symbol="BTCUSDT"
         timeframe="1h"
         horizon={1}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
       />,
     );
 
@@ -83,6 +91,8 @@ describe("BacktestCard", () => {
         symbol="BTCUSDT"
         timeframe="1h"
         horizon={1}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
       />,
     );
 
@@ -96,6 +106,8 @@ describe("BacktestCard", () => {
         symbol="BTCUSDT"
         timeframe="1h"
         horizon={1}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
       />,
     );
 

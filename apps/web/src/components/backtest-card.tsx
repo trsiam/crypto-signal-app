@@ -1,16 +1,22 @@
 import type { BacktestResult } from "../lib/signal-backtest";
 
+type BacktestCardProps = {
+  result: BacktestResult;
+  symbol: string;
+  timeframe: string;
+  horizon: number;
+  neutralThresholdPercent: number;
+  tradingCostPercent: number;
+};
+
 export function BacktestCard({
   result,
   symbol,
   timeframe,
   horizon,
-}: {
-  result: BacktestResult;
-  symbol: string;
-  timeframe: string;
-  horizon: number;
-}) {
+  neutralThresholdPercent,
+  tradingCostPercent,
+}: BacktestCardProps) {
   const winRateClasses =
     result.winRate >= 60
       ? "text-emerald-400"
@@ -81,6 +87,14 @@ export function BacktestCard({
           </dd>
         </div>
       </dl>
+
+      <div
+        aria-label="Backtest assumptions"
+        className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-400"
+      >
+        <p>Neutral threshold: {neutralThresholdPercent}%</p>
+        <p className="mt-1">Trading cost: {tradingCostPercent}%</p>
+      </div>
 
       <p className="mt-6 border-t border-zinc-800 pt-5 text-sm text-zinc-500">
         Historical results do not guarantee future performance.
