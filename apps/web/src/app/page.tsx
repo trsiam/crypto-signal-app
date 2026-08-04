@@ -1,11 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { BacktestCard } from "../components/backtest-card";
 import { PriceChart } from "../components/price-chart";
 import { SignalCard } from "../components/signal-card";
 import { useMarketCandles } from "../hooks/use-market-candles";
 import { useMarketPrice } from "../hooks/use-market-price";
 import { generateSignalFromCandles } from "../lib/market-signal";
+import { backtestSignals } from "../lib/signal-backtest";
 
 const symbols = [
   { value: "BTCUSDT", label: "Bitcoin" },
@@ -18,6 +20,8 @@ const chartIntervals = [
   { value: "4h", label: "4h" },
   { value: "1d", label: "1d" },
 ];
+const backtestLookback = 35;
+const backtestHorizon = 1;
 
 export default function Home() {
   const [chartInterval, setChartInterval] = useState("1h");
@@ -45,6 +49,15 @@ export default function Home() {
   });
 
   const liveSignal = generateSignalFromCandles(candles);
+  const backtestResult = useMemo(
+    () =>
+      backtestSignals(
+        candles,
+        backtestLookback,
+        backtestHorizon,
+      ),
+    [candles],
+  );
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
@@ -161,6 +174,23 @@ export default function Home() {
           liveSignal === null && (
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-zinc-400">
               Not enough market history to calculate a signal.
+            </section>
+          )}
+
+        {candles.length >= backtestLookback && (
+          <BacktestCard
+            result={backtestResult}
+            symbol={selectedSymbol}
+            timeframe={chartInterval}
+            horizon={backtestHorizon}
+          />
+        )}
+
+        {!areCandlesLoading &&
+          candles.length > 0 &&
+          candles.length < backtestLookback && (
+            <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-zinc-400">
+              Not enough market history to run the backtest.
             </section>
           )}
 

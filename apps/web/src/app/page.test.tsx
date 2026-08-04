@@ -15,12 +15,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MarketCandle } from "../hooks/use-market-candles";
 import Home from "./page";
 
-const { generateSignalFromCandlesMock, useMarketCandlesMock } = vi.hoisted(
-  () => ({
+const {
+  backtestSignalsMock,
+  generateSignalFromCandlesMock,
+  useMarketCandlesMock,
+} = vi.hoisted(() => ({
+    backtestSignalsMock: vi.fn(),
     generateSignalFromCandlesMock: vi.fn(),
     useMarketCandlesMock: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("../hooks/use-market-candles", () => ({
   useMarketCandles: useMarketCandlesMock,
@@ -28,6 +31,10 @@ vi.mock("../hooks/use-market-candles", () => ({
 
 vi.mock("../lib/market-signal", () => ({
   generateSignalFromCandles: generateSignalFromCandlesMock,
+}));
+
+vi.mock("../lib/signal-backtest", () => ({
+  backtestSignals: backtestSignalsMock,
 }));
 
 const mockCandle: MarketCandle = {
@@ -39,6 +46,15 @@ const mockCandle: MarketCandle = {
   volume: 1_250,
   close_time: 1_700_003_599_999,
 };
+
+const sufficientCandles = Array.from(
+  { length: 35 },
+  (_, index) => ({
+    ...mockCandle,
+    open_time: mockCandle.open_time + index * 3_600_000,
+    close_time: mockCandle.close_time + index * 3_600_000,
+  }),
+);
 
 describe("Home page", () => {
   beforeEach(() => {
@@ -54,6 +70,17 @@ describe("Home page", () => {
 
     generateSignalFromCandlesMock.mockReset();
     generateSignalFromCandlesMock.mockReturnValue(null);
+
+    backtestSignalsMock.mockReset();
+    backtestSignalsMock.mockReturnValue({
+      totalSignals: 10,
+      wins: 6,
+      losses: 3,
+      neutral: 1,
+      winRate: 66.67,
+      averageReturnPercent: 1.2345,
+      trades: [],
+    });
   });
 
   afterEach(() => {
@@ -417,5 +444,58 @@ describe("Home page", () => {
     expect(
       screen.getByText("Not enough market history to calculate a signal."),
     ).toBeVisible();
+    expect(
+      screen.getByText("Not enough market history to run the backtest."),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Historical performance"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("displays historical performance for the selected symbol and timeframe", () => {
+    useMarketCandlesMock.mockReturnValue({
+      candles: sufficientCandles,
+      isLoading: false,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+
+    render(<Home />);
+
+    expect(screen.getByText("Historical performance")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "BTCUSDT" }),
+    ).toBeVisible();
+    expect(screen.getByText("1h / 1 candle ahead")).toBeVisible();
+    expect(backtestSignalsMock).toHaveBeenCalledWith(
+      sufficientCandles,
+      35,
+      1,
+    );
+  });
+
+  it("updates historical performance when the timeframe changes", async () => {
+    useMarketCandlesMock.mockReturnValue({
+      candles: sufficientCandles,
+      isLoading: false,
+      isRefreshing: false,
+      error: null,
+      lastUpdated: null,
+      refreshCandles: vi.fn(),
+    });
+    const user = userEvent.setup();
+
+    render(<Home />);
+
+    await user.click(screen.getByRole("button", { name: "4h" }));
+
+    expect(screen.getByText("4h / 1 candle ahead")).toBeVisible();
+    expect(useMarketCandlesMock).toHaveBeenLastCalledWith({
+      symbol: "BTCUSDT",
+      interval: "4h",
+      limit: 100,
+    });
   });
 });
