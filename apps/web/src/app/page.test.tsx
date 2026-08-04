@@ -78,6 +78,7 @@ describe("Home page", () => {
       losses: 3,
       neutral: 1,
       winRate: 66.67,
+      totalNetReturnPercent: 7.5,
       averageReturnPercent: 1.2345,
       trades: [],
     });

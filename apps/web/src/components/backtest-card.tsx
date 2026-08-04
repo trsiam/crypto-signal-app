@@ -89,6 +89,15 @@ export function BacktestCard({
             {result.averageReturnPercent}%
           </dd>
         </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+          <dt className="text-xs uppercase tracking-wider text-zinc-500">
+            Total net return
+          </dt>
+          <dd className="mt-2 font-medium text-zinc-100">
+            {result.totalNetReturnPercent}%
+          </dd>
+        </div>
       </dl>
 
       <div

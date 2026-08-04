@@ -18,6 +18,7 @@ export type BacktestResult = {
   losses: number;
   neutral: number;
   winRate: number;
+  totalNetReturnPercent: number;
   averageReturnPercent: number;
   trades: BacktestTrade[];
 };
@@ -122,6 +123,10 @@ export function backtestSignals(
   const decidedTrades = wins + losses;
   const winRate =
     decidedTrades === 0 ? 0 : roundTo((wins / decidedTrades) * 100, 2);
+  const totalNetReturnPercent = trades.reduce(
+    (sum, trade) => sum + trade.returnPercent,
+    0,
+  );
   const averageReturnPercent =
     trades.length === 0
       ? 0
@@ -137,6 +142,7 @@ export function backtestSignals(
     losses,
     neutral,
     winRate,
+    totalNetReturnPercent,
     averageReturnPercent,
     trades,
   };

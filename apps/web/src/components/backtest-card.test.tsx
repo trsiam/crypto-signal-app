@@ -17,6 +17,7 @@ const backtestResult: BacktestResult = {
   losses: 3,
   neutral: 1,
   winRate: 66.67,
+  totalNetReturnPercent: 7.5,
   averageReturnPercent: 1.2345,
   trades: [],
 };
@@ -48,8 +49,10 @@ describe("BacktestCard", () => {
     expect(screen.getByText("Neutral")).toBeVisible();
     expect(screen.getByText("Historical win rate")).toBeVisible();
     expect(screen.getByText("Average net return")).toBeVisible();
+    expect(screen.getByText("Total net return")).toBeVisible();
     expect(screen.getByText("66.67%")).toBeVisible();
     expect(screen.getByText("1.2345%")).toBeVisible();
+    expect(screen.getByText("7.5%")).toBeVisible();
     expect(screen.getByText("Neutral threshold: 0.1%")).toBeVisible();
     expect(screen.getByText("Trading cost: 0.1%")).toBeVisible();
     expect(
@@ -122,5 +125,20 @@ describe("BacktestCard", () => {
     );
 
     expect(screen.getByText("49.99%")).toHaveClass("text-rose-400");
+  });
+
+  it("displays a negative total net return", () => {
+    render(
+      <BacktestCard
+        result={{ ...backtestResult, totalNetReturnPercent: -2.5 }}
+        symbol="BTCUSDT"
+        timeframe="1h"
+        horizon={1}
+        neutralThresholdPercent={0.1}
+        tradingCostPercent={0.1}
+      />,
+    );
+
+    expect(screen.getByText("-2.5%")).toBeVisible();
   });
 });

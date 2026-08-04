@@ -112,6 +112,7 @@ describe("backtestSignals", () => {
       losses: 0,
       neutral: 0,
       winRate: 0,
+      totalNetReturnPercent: 0,
       averageReturnPercent: 0,
       trades: [],
     });
@@ -210,6 +211,36 @@ describe("backtestSignals", () => {
     const result = backtestSignals(candles, 1, 1, 0, 0);
 
     expect(result.trades[0].returnPercent).toBe(10);
+  });
+
+  it("sums positive and negative net trade returns", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [
+      createCandle(0, 100),
+      createCandle(1, 110),
+      createCandle(2, 104.5),
+    ];
+
+    const result = backtestSignals(candles, 1, 1);
+
+    expect(result.trades[0].returnPercent).toBeCloseTo(10);
+    expect(result.trades[1].returnPercent).toBeCloseTo(-5);
+    expect(result.totalNetReturnPercent).toBeCloseTo(5);
+  });
+
+  it("includes trading costs in the total net return", () => {
+    generateSignalMock.mockReturnValue(buySignal);
+    const candles = [
+      createCandle(0, 100),
+      createCandle(1, 110),
+      createCandle(2, 121),
+    ];
+
+    const result = backtestSignals(candles, 1, 1, 0, 0.25);
+
+    expect(result.trades[0].returnPercent).toBeCloseTo(9.75);
+    expect(result.trades[1].returnPercent).toBeCloseTo(9.75);
+    expect(result.totalNetReturnPercent).toBeCloseTo(19.5);
   });
 
   it("records a neutral trade without affecting win rate", () => {
