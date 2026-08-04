@@ -468,7 +468,12 @@ describe("Home page", () => {
     expect(
       screen.getByRole("heading", { name: "BTCUSDT" }),
     ).toBeVisible();
-    expect(screen.getByText("1h / 1 candle ahead")).toBeVisible();
+    expect(
+      screen.getByText("1h timeframe · 10 signals evaluated"),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Evaluation horizon: 1 candle ahead"),
+    ).toBeVisible();
     expect(screen.getByText("Neutral threshold: 0.1%")).toBeVisible();
     expect(screen.getByText("Trading cost: 0.1%")).toBeVisible();
     expect(backtestSignalsMock).toHaveBeenCalledWith(
@@ -501,7 +506,12 @@ describe("Home page", () => {
 
     await user.click(screen.getByRole("button", { name: "4h" }));
 
-    expect(screen.getByText("4h / 1 candle ahead")).toBeVisible();
+    expect(
+      screen.getByText("4h timeframe · 10 signals evaluated"),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Evaluation horizon: 1 candle ahead"),
+    ).toBeVisible();
     expect(useMarketCandlesMock).toHaveBeenLastCalledWith({
       symbol: "BTCUSDT",
       interval: "4h",

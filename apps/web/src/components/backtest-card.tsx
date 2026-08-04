@@ -34,7 +34,10 @@ export function BacktestCard({
         </p>
         <h2 className="mt-2 text-xl font-semibold text-zinc-100">{symbol}</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {timeframe} / {horizonLabel}
+          {timeframe} timeframe · {result.totalSignals} signals evaluated
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Evaluation horizon: {horizonLabel}
         </p>
       </div>
 

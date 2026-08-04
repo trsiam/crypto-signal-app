@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 const backtestResult: BacktestResult = {
-  totalSignals: 10,
+  totalSignals: 12,
   wins: 6,
   losses: 3,
   neutral: 1,
@@ -36,7 +36,12 @@ describe("BacktestCard", () => {
 
     expect(screen.getByText("Historical performance")).toBeVisible();
     expect(screen.getByText("BTCUSDT")).toBeVisible();
-    expect(screen.getByText("1h / 1 candle ahead")).toBeVisible();
+    expect(
+      screen.getByText("1h timeframe · 12 signals evaluated"),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Evaluation horizon: 1 candle ahead"),
+    ).toBeVisible();
     expect(screen.getByText("Total signals")).toBeVisible();
     expect(screen.getByText("Wins")).toBeVisible();
     expect(screen.getByText("Losses")).toBeVisible();
@@ -69,7 +74,9 @@ describe("BacktestCard", () => {
       />,
     );
 
-    expect(screen.getByText("1h / 3 candles ahead")).toBeVisible();
+    expect(
+      screen.getByText("Evaluation horizon: 3 candles ahead"),
+    ).toBeVisible();
   });
 
   it("uses high win-rate styling", () => {
